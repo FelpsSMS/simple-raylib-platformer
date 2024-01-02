@@ -13,6 +13,7 @@ var SCREEN_HEIGHT = 450
 var GAME_TITLE = "PLATFORMER"
 var logger = log.New(os.Stdout, "LOG: ", log.Ldate|log.Ltime|log.Lshortfile)
 var tiles []Tile
+var mobs []*Mob
 
 func main() {
 	rl.InitWindow(int32(SCREEN_WIDTH), int32(SCREEN_HEIGHT), GAME_TITLE)
@@ -23,12 +24,20 @@ func main() {
 
 	defer rl.UnloadTexture(player.Sprite.Texture)
 
+	mobs = append(mobs, Spawn(Mob{Name: "Test", X: 400, Y: 350, Width: 30, Height: 16, HP: 100, MoveSpeed: 2, MovePattern: FIXED_HORIZONTAL}))
+
 	for !rl.WindowShouldClose() {
 		player.CheckForPause()
 
 		if player.State != PAUSED {
 			player.CheckForMovement()
 			player.ApplyGravity()
+
+			for _, mob := range mobs {
+				mob.Move()
+				mob.ApplyGravity()
+			}
+
 		} else {
 			rl.DrawText("PAUSED", int32(SCREEN_WIDTH)/2, int32(SCREEN_HEIGHT)/2, 40, rl.LightGray)
 		}
@@ -39,6 +48,10 @@ func main() {
 
 		initiateLevel()
 		player.Draw()
+
+		for _, mob := range mobs {
+			mob.Draw()
+		}
 
 		rl.EndDrawing()
 	}
@@ -67,8 +80,8 @@ func initiateLevel() {
 	addTileToMap(8, 5, true, rl.Brown)
 	addTileToMap(18, 3, false, rl.Blue)
 
-	logger.Printf("TILES IN X %v \n", tilesInX)
-	logger.Printf("TILES IN Y %v \n", tilesInY)
+	// logger.Printf("TILES IN X %v \n", tilesInX)
+	// logger.Printf("TILES IN Y %v \n", tilesInY)
 
 	for i := 2; i <= tilesInY; i++ {
 		addTileToMap(tilesInX-1, i, true, rl.DarkPurple)

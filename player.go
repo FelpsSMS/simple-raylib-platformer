@@ -78,7 +78,16 @@ func (p *Player) CheckForPause() {
 
 		if p.State != PAUSED {
 			p.State = PAUSED
+
+			for _, mob := range mobs {
+				mob.State = PAUSED
+			}
+
 			return
+		}
+
+		for _, mob := range mobs {
+			mob.State = MOVING
 		}
 
 		p.State = IDLE
