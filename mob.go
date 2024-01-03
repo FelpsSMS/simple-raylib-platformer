@@ -13,23 +13,27 @@ const (
 )
 
 type Mob struct {
-	X           float32
-	Y           float32
-	Width       float32
-	Height      float32
-	Hitbox      rl.Rectangle
-	State       State
-	Sprite      Sprite
-	RightSide   bool
-	isJumping   bool
-	isFalling   bool
-	originalY   float32
-	HP          float32
-	MovePattern MovePattern
-	SpawnX      float32
-	SpawnY      float32
-	Name        string
-	MoveSpeed   float32
+	X               float32
+	Y               float32
+	Width           float32
+	Height          float32
+	Hitbox          rl.Rectangle
+	State           State
+	Sprite          Sprite
+	RightSide       bool
+	isJumping       bool
+	isFalling       bool
+	originalY       float32
+	HP              float32
+	MaxHP           float32
+	MovePattern     MovePattern
+	SpawnX          float32
+	SpawnY          float32
+	Name            string
+	MoveSpeed       float32
+	HPBar           rl.Rectangle
+	originalHPWidth float32
+	Damage          float32
 }
 
 func Spawn(mob Mob) *Mob {
@@ -40,6 +44,9 @@ func Spawn(mob Mob) *Mob {
 	mob.isJumping = false
 	mob.State = MOVING
 	mob.RightSide = false
+	mob.MaxHP = mob.HP
+	mob.HPBar = rl.NewRectangle(mob.X, mob.Y+mob.Height, 20, 4)
+	mob.originalHPWidth = 20
 
 	return &mob
 }
@@ -107,9 +114,18 @@ func (mob *Mob) OffsetHitbox(offset OffsetParams) rl.Rectangle {
 
 func (mob *Mob) Draw() {
 	rect := rl.Rectangle{X: mob.X, Y: mob.Y, Width: mob.Width, Height: mob.Height}
+
 	mob.Hitbox = rect
 
-	rl.DrawRectangleRec(rect, rl.DarkGreen)
+	if mob.HP > 0 {
+		mob.HPBar.Width = mob.originalHPWidth * (mob.HP / mob.MaxHP)
+
+		mob.HPBar.X = mob.X
+		mob.HPBar.Y = mob.Y - mob.Height/2
+
+		rl.DrawRectangleRec(mob.HPBar, rl.Red)
+		rl.DrawRectangleRec(rect, rl.DarkGreen)
+	}
 
 	// if mob.isFalling || mob.isJumping {
 	// 	mob.Sprite.FrameRec = rl.NewRectangle(float32(mob.Sprite.Texture.Width/8)*7, 0, float32(mob.Sprite.Texture.Width/8), float32(mob.Sprite.Texture.Height/4))

@@ -21,20 +21,27 @@ const (
 	IDLE State = iota
 	MOVING
 	PAUSED
+	DEAD
 )
 
 type Player struct {
-	X         float32
-	Y         float32
-	Width     float32
-	Height    float32
-	Hitbox    rl.Rectangle
-	State     State
-	Sprite    Sprite
-	RightSide bool
-	isJumping bool
-	isFalling bool
-	originalY float32
+	X               float32
+	Y               float32
+	Width           float32
+	Height          float32
+	Hitbox          rl.Rectangle
+	State           State
+	Sprite          Sprite
+	RightSide       bool
+	isJumping       bool
+	isFalling       bool
+	isInvunerable   bool
+	originalY       float32
+	Weapon          Weapon
+	HPBar           rl.Rectangle
+	originalHPWidth float32
+	HP              float32
+	MaxHP           float32
 }
 
 type OffsetParams struct {
@@ -54,15 +61,18 @@ func GetPlayer() *Player {
 		playerTexture := rl.LoadTexture("assets/player/player-spritemap-v9.png")
 
 		instance = &Player{
-			State:     IDLE,
-			X:         100,
-			Y:         100,
-			Width:     16,
-			Height:    38,
-			RightSide: true,
-			isJumping: false,
-			originalY: 100,
-			isFalling: true,
+			State:         IDLE,
+			X:             100,
+			Y:             100,
+			Width:         16,
+			Height:        38,
+			RightSide:     true,
+			isJumping:     false,
+			originalY:     100,
+			isFalling:     true,
+			isInvunerable: false,
+			HP:            200,
+			MaxHP:         200,
 			Sprite: Sprite{
 				Texture:  playerTexture,
 				FrameRec: rl.NewRectangle(0, 0, float32(playerTexture.Width/8), float32(playerTexture.Height/4)),
@@ -70,9 +80,14 @@ func GetPlayer() *Player {
 			},
 		}
 	})
+
 	return instance
 }
+
 func (p *Player) CheckForPause() {
+	if p.State == DEAD {
+		return
+	}
 
 	if rl.IsKeyPressed(rl.KeyP) {
 
@@ -91,6 +106,19 @@ func (p *Player) CheckForPause() {
 		}
 
 		p.State = IDLE
+	}
+}
+
+func (p *Player) CheckForAttack() {
+
+	if rl.IsKeyPressed(rl.KeyZ) {
+
+		for _, mob := range mobs {
+
+			if rl.CheckCollisionRecs(mob.Hitbox, p.Weapon.Hitbox) {
+				mob.HP -= p.Weapon.Damage
+			}
+		}
 	}
 }
 
@@ -134,6 +162,17 @@ func (p *Player) CheckForMovement() {
 	}
 }
 
+func (p *Player) CheckForCollision() {
+
+	for _, mob := range mobs {
+		if rl.CheckCollisionRecs(p.Hitbox, mob.Hitbox) && !p.isInvunerable {
+			p.HP -= mob.Damage
+			p.isInvunerable = true
+			invulnerabilityTimer = 90
+		}
+	}
+}
+
 func (p *Player) ApplyGravity() {
 	gravity := float32(-1)
 	jumpHeight := float32(100)
@@ -170,7 +209,17 @@ func (p *Player) ApplyGravity() {
 func (p *Player) Draw() {
 	rect := rl.Rectangle{X: p.X, Y: p.Y, Width: p.Width, Height: p.Height}
 	p.Hitbox = rect
-	rl.DrawRectangleRec(rect, rl.DarkBlue)
+
+	basicWeapon := Weapon{
+		Name:   "Basic Sword",
+		Damage: 5,
+		Hitbox: rl.NewRectangle(p.X+p.Width, p.Y+p.Height/2, 20, 4),
+	}
+
+	p.HPBar = rl.NewRectangle(p.X, p.Y+p.Height, 20, 4)
+	p.originalHPWidth = 20
+
+	p.Weapon = basicWeapon
 
 	if p.isFalling || p.isJumping {
 		p.Sprite.FrameRec = rl.NewRectangle(float32(p.Sprite.Texture.Width/8)*7, 0, float32(p.Sprite.Texture.Width/8), float32(p.Sprite.Texture.Height/4))
@@ -206,7 +255,20 @@ func (p *Player) Draw() {
 		}
 	}
 
-	rl.DrawTextureRec(p.Sprite.Texture, p.Sprite.FrameRec, rl.Vector2{X: p.X - p.Hitbox.Width, Y: p.Y - p.Hitbox.Height/4}, rl.White)
+	if p.HP > 0 {
+		p.HPBar.Width = p.originalHPWidth * (p.HP / p.MaxHP)
+
+		p.HPBar.X = p.X
+		p.HPBar.Y = p.Y - p.Height/2
+
+		rl.DrawRectangleRec(p.Weapon.Hitbox, rl.DarkGray)
+		rl.DrawRectangleRec(p.HPBar, rl.Red)
+		rl.DrawRectangleRec(rect, rl.DarkBlue)
+		rl.DrawTextureRec(p.Sprite.Texture, p.Sprite.FrameRec, rl.Vector2{X: p.X - p.Hitbox.Width, Y: p.Y - p.Hitbox.Height/4}, rl.White)
+	} else {
+		p.State = DEAD
+	}
+
 }
 
 func (p *Player) OffsetHitbox(offset OffsetParams) rl.Rectangle {

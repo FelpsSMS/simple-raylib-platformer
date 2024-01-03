@@ -14,6 +14,7 @@ var GAME_TITLE = "PLATFORMER"
 var logger = log.New(os.Stdout, "LOG: ", log.Ldate|log.Ltime|log.Lshortfile)
 var tiles []Tile
 var mobs []*Mob
+var invulnerabilityTimer = 0
 
 func main() {
 	rl.InitWindow(int32(SCREEN_WIDTH), int32(SCREEN_HEIGHT), GAME_TITLE)
@@ -24,14 +25,22 @@ func main() {
 
 	defer rl.UnloadTexture(player.Sprite.Texture)
 
-	mobs = append(mobs, Spawn(Mob{Name: "Test", X: 400, Y: 350, Width: 30, Height: 16, HP: 100, MoveSpeed: 2, MovePattern: FIXED_HORIZONTAL}))
+	mobs = append(mobs, Spawn(Mob{Name: "Test", X: 400, Y: 350, Width: 30, Height: 40, HP: 100, MoveSpeed: 2, MovePattern: FIXED_HORIZONTAL, Damage: 50}))
 
 	for !rl.WindowShouldClose() {
 		player.CheckForPause()
 
-		if player.State != PAUSED {
+		if player.State != PAUSED && player.State != DEAD {
 			player.CheckForMovement()
+			player.CheckForAttack()
 			player.ApplyGravity()
+			player.CheckForCollision()
+
+			if invulnerabilityTimer > 0 {
+				invulnerabilityTimer--
+			} else {
+				player.isInvunerable = false
+			}
 
 			for _, mob := range mobs {
 				mob.Move()
@@ -39,7 +48,17 @@ func main() {
 			}
 
 		} else {
-			rl.DrawText("PAUSED", int32(SCREEN_WIDTH)/2, int32(SCREEN_HEIGHT)/2, 40, rl.LightGray)
+			displayText := ""
+
+			if player.State == DEAD {
+				displayText = "GAME OVER"
+			}
+
+			if player.State == PAUSED {
+				displayText = "PAUSED"
+			}
+
+			rl.DrawText(displayText, int32(SCREEN_WIDTH)/2, int32(SCREEN_HEIGHT)/2, 40, rl.LightGray)
 		}
 
 		rl.BeginDrawing()
