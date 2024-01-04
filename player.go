@@ -42,6 +42,7 @@ type Player struct {
 	originalHPWidth float32
 	HP              float32
 	MaxHP           float32
+	Inventory       []*Item
 }
 
 type OffsetParams struct {
@@ -212,7 +213,7 @@ func (p *Player) Draw() {
 
 	basicWeapon := Weapon{
 		Name:   "Basic Sword",
-		Damage: 5,
+		Damage: 50,
 		Hitbox: rl.NewRectangle(p.X+p.Width, p.Y+p.Height/2, 20, 4),
 	}
 

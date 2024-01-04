@@ -1,6 +1,8 @@
 package main
 
 import (
+	"math/rand"
+
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
@@ -34,6 +36,7 @@ type Mob struct {
 	HPBar           rl.Rectangle
 	originalHPWidth float32
 	Damage          float32
+	dropTable       []ItemDrop
 }
 
 func Spawn(mob Mob) *Mob {
@@ -112,6 +115,20 @@ func (mob *Mob) OffsetHitbox(offset OffsetParams) rl.Rectangle {
 	return rl.Rectangle{X: mob.Hitbox.X + offset.X, Y: mob.Hitbox.Y + offset.Y, Width: mob.Hitbox.Width + offset.Width, Height: mob.Hitbox.Height + offset.Height}
 }
 
+func (mob *Mob) dropItems() {
+	roll := rand.Intn(100)
+
+	for _, itemDrop := range mob.dropTable {
+
+		if roll <= itemDrop.chance {
+			rect := rl.Rectangle{X: mob.X + mob.Width/2, Y: mob.Y + mob.Height/2, Width: itemDrop.item.hitbox.Width, Height: itemDrop.item.hitbox.Height}
+
+			itemDrop.item.hitbox = rect
+			itemsInMap = append(itemsInMap, &itemDrop.item)
+		}
+	}
+}
+
 func (mob *Mob) Draw() {
 	rect := rl.Rectangle{X: mob.X, Y: mob.Y, Width: mob.Width, Height: mob.Height}
 
@@ -125,6 +142,14 @@ func (mob *Mob) Draw() {
 
 		rl.DrawRectangleRec(mob.HPBar, rl.Red)
 		rl.DrawRectangleRec(rect, rl.DarkGreen)
+	} else {
+		index := FindElementIndex(mobs, mob)
+
+		if index != -1 {
+			mobs = RemoveFromSlice(mobs, index)
+		}
+
+		mob.dropItems()
 	}
 
 	// if mob.isFalling || mob.isJumping {

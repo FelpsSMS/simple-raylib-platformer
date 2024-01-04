@@ -4,6 +4,7 @@ import (
 	"image/color"
 	"log"
 	"os"
+	"reflect"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -14,7 +15,22 @@ var GAME_TITLE = "PLATFORMER"
 var logger = log.New(os.Stdout, "LOG: ", log.Ldate|log.Ltime|log.Lshortfile)
 var tiles []Tile
 var mobs []*Mob
+var itemsInMap []*Item
 var invulnerabilityTimer = 0
+
+func FindElementIndex[T any](slice []T, element T) int {
+	for index, elementInSlice := range slice {
+		if reflect.DeepEqual(elementInSlice, element) {
+			return index
+		}
+	}
+
+	return -1
+}
+
+func RemoveFromSlice[T any](slice []T, index int) []T {
+	return append(slice[:index], slice[index+1:]...)
+}
 
 func main() {
 	rl.InitWindow(int32(SCREEN_WIDTH), int32(SCREEN_HEIGHT), GAME_TITLE)
@@ -24,8 +40,12 @@ func main() {
 	rl.SetTargetFPS(60)
 
 	defer rl.UnloadTexture(player.Sprite.Texture)
+	basicPotion := Item{name: "Basic potion", itemId: "basicPotion", hitbox: rl.NewRectangle(0, 0, 12, 12)}
 
-	mobs = append(mobs, Spawn(Mob{Name: "Test", X: 400, Y: 350, Width: 30, Height: 40, HP: 100, MoveSpeed: 2, MovePattern: FIXED_HORIZONTAL, Damage: 50}))
+	basicMob := Spawn(Mob{Name: "Test", X: 400, Y: 350, Width: 30, Height: 40, HP: 100, MoveSpeed: 2, MovePattern: FIXED_HORIZONTAL, Damage: 5})
+	basicMob.dropTable = append(basicMob.dropTable, ItemDrop{item: basicPotion, chance: 60})
+
+	mobs = append(mobs, basicMob)
 
 	for !rl.WindowShouldClose() {
 		player.CheckForPause()
@@ -36,6 +56,8 @@ func main() {
 			player.ApplyGravity()
 			player.CheckForCollision()
 
+			logger.Println(player.Inventory)
+
 			if invulnerabilityTimer > 0 {
 				invulnerabilityTimer--
 			} else {
@@ -45,6 +67,10 @@ func main() {
 			for _, mob := range mobs {
 				mob.Move()
 				mob.ApplyGravity()
+			}
+
+			for _, item := range itemsInMap {
+				item.DetectCollisionWithItem()
 			}
 
 		} else {
@@ -70,6 +96,10 @@ func main() {
 
 		for _, mob := range mobs {
 			mob.Draw()
+		}
+
+		for _, item := range itemsInMap {
+			item.Draw()
 		}
 
 		rl.EndDrawing()
@@ -98,9 +128,6 @@ func initiateLevel() {
 	addTileToMap(4, 8, true, rl.Brown)
 	addTileToMap(8, 5, true, rl.Brown)
 	addTileToMap(18, 3, false, rl.Blue)
-
-	// logger.Printf("TILES IN X %v \n", tilesInX)
-	// logger.Printf("TILES IN Y %v \n", tilesInY)
 
 	for i := 2; i <= tilesInY; i++ {
 		addTileToMap(tilesInX-1, i, true, rl.DarkPurple)
