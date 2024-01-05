@@ -43,20 +43,21 @@ func main() {
 	basicPotion := Item{name: "Basic potion", itemId: "basicPotion", hitbox: rl.NewRectangle(0, 0, 12, 12)}
 
 	basicMob := Spawn(Mob{Name: "Test", X: 400, Y: 350, Width: 30, Height: 40, HP: 100, MoveSpeed: 2, MovePattern: FIXED_HORIZONTAL, Damage: 5})
-	basicMob.dropTable = append(basicMob.dropTable, ItemDrop{item: basicPotion, chance: 60})
+	basicMob.dropTable = append(basicMob.dropTable, ItemDrop{item: basicPotion, chance: 100})
 
 	mobs = append(mobs, basicMob)
 
+	isInventoryOpen := false
+
 	for !rl.WindowShouldClose() {
 		player.CheckForPause()
+		logger.Print(player.HP)
 
 		if player.State != PAUSED && player.State != DEAD {
 			player.CheckForMovement()
 			player.CheckForAttack()
 			player.ApplyGravity()
 			player.CheckForCollision()
-
-			logger.Println(player.Inventory)
 
 			if invulnerabilityTimer > 0 {
 				invulnerabilityTimer--
@@ -102,6 +103,22 @@ func main() {
 			item.Draw()
 		}
 
+		if player.State != PAUSED && player.State != DEAD {
+			if rl.IsKeyPressed(rl.KeyI) {
+
+				if isInventoryOpen {
+					isInventoryOpen = false
+
+				} else {
+					isInventoryOpen = true
+				}
+			}
+		}
+
+		if isInventoryOpen {
+			drawInventoryWindow()
+		}
+
 		rl.EndDrawing()
 	}
 }
@@ -144,4 +161,34 @@ func addTileToMap(x int, y int, solid bool, color color.RGBA) {
 	rl.DrawRectangleRec(rect, color)
 
 	tiles = append(tiles, tile)
+}
+
+func drawInventoryWindow() {
+	player := GetPlayer()
+	inventoryWindow := GetInventoryWindow()
+	mousePos := rl.GetMousePosition()
+
+	rl.DrawRectangleRec(inventoryWindow.box, rl.Beige)
+
+	initialX := inventoryWindow.box.X + 10
+	initialY := inventoryWindow.box.Y + 10
+
+	for _, item := range player.Inventory {
+		itemBox := rl.Rectangle{X: initialX, Y: initialY, Width: 20, Height: 20}
+		item.windowBox = itemBox
+
+		rl.DrawRectangleRec(itemBox, rl.Blue)
+		initialX += 10
+		initialY += 10
+		rl.DrawText(item.name, int32(initialX), int32(initialY), 8, rl.Black)
+
+		if rl.IsMouseButtonPressed(rl.MouseButtonLeft) && rl.CheckCollisionPointRec(mousePos, item.windowBox) {
+			item.Use()
+
+			index := FindElementIndex(player.Inventory, item)
+
+			player.Inventory = RemoveFromSlice(player.Inventory, index)
+		}
+	}
+
 }

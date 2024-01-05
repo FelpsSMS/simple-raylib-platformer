@@ -22,11 +22,12 @@ type ItemDrop struct {
 }
 
 type Item struct {
-	itemId   string
-	itemType ItemType
-	name     string
-	sprite   Sprite
-	hitbox   rl.Rectangle
+	itemId    string
+	itemType  ItemType
+	name      string
+	sprite    Sprite
+	hitbox    rl.Rectangle
+	windowBox rl.Rectangle
 }
 
 func (item *Item) Use() {

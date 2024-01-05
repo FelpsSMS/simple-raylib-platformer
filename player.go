@@ -53,15 +53,15 @@ type OffsetParams struct {
 }
 
 var (
-	instance *Player
-	once     sync.Once
+	playerInstance *Player
+	playerOnce     sync.Once
 )
 
 func GetPlayer() *Player {
-	once.Do(func() {
+	playerOnce.Do(func() {
 		playerTexture := rl.LoadTexture("assets/player/player-spritemap-v9.png")
 
-		instance = &Player{
+		playerInstance = &Player{
 			State:         IDLE,
 			X:             100,
 			Y:             100,
@@ -82,7 +82,7 @@ func GetPlayer() *Player {
 		}
 	})
 
-	return instance
+	return playerInstance
 }
 
 func (p *Player) CheckForPause() {
