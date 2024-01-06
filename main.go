@@ -16,6 +16,7 @@ var logger = log.New(os.Stdout, "LOG: ", log.Ldate|log.Ltime|log.Lshortfile)
 var tiles []Tile
 var mobs []*Mob
 var itemsInMap []*Item
+var projectilesInMap []*Projectile
 var invulnerabilityTimer = 0
 
 func FindElementIndex[T any](slice []T, element T) int {
@@ -49,9 +50,11 @@ func main() {
 
 	isInventoryOpen := false
 
+	startDebugPlayer()
+
 	for !rl.WindowShouldClose() {
 		player.CheckForPause()
-		logger.Print(player.HP)
+		//logger.Print(projectilesInMap)
 
 		if player.State != PAUSED && player.State != DEAD {
 			player.CheckForMovement()
@@ -72,6 +75,10 @@ func main() {
 
 			for _, item := range itemsInMap {
 				item.DetectCollisionWithItem()
+			}
+
+			for _, projectile := range projectilesInMap {
+				projectile.Move()
 			}
 
 		} else {
@@ -101,6 +108,10 @@ func main() {
 
 		for _, item := range itemsInMap {
 			item.Draw()
+		}
+
+		for _, projectile := range projectilesInMap {
+			projectile.Draw()
 		}
 
 		if player.State != PAUSED && player.State != DEAD {
@@ -187,8 +198,43 @@ func drawInventoryWindow() {
 
 			index := FindElementIndex(player.Inventory, item)
 
-			player.Inventory = RemoveFromSlice(player.Inventory, index)
+			if index != -1 {
+				player.Inventory = RemoveFromSlice(player.Inventory, index)
+			}
 		}
 	}
+}
 
+func startDebugPlayer() {
+	p := GetPlayer()
+
+	basicWeapon := Weapon{
+		Name:     "Basic Sword",
+		Damage:   50,
+		Hitbox:   rl.NewRectangle(p.X+p.Width, p.Y+p.Height/2, 20, 4),
+		isRanged: false,
+	}
+
+	basicRangedWeapon := Weapon{
+		Name:     "Basic Gun",
+		Hitbox:   rl.NewRectangle(p.X+p.Width, p.Y+p.Height/2, 10, 4),
+		isRanged: true,
+	}
+
+	basicProjectile := Projectile{
+		name:   "Basic Bullet",
+		damage: 25,
+		speed:  2,
+		width:  5,
+		height: 5,
+	}
+
+	p.HPBar = rl.NewRectangle(p.X, p.Y+p.Height, 20, 4)
+	p.originalHPWidth = 20
+
+	p.Weapon = basicWeapon
+
+	p.Weapon = basicRangedWeapon
+	p.projectileQuantity = 100
+	p.projectileSlot = basicProjectile
 }

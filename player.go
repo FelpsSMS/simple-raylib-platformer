@@ -25,24 +25,26 @@ const (
 )
 
 type Player struct {
-	X               float32
-	Y               float32
-	Width           float32
-	Height          float32
-	Hitbox          rl.Rectangle
-	State           State
-	Sprite          Sprite
-	RightSide       bool
-	isJumping       bool
-	isFalling       bool
-	isInvunerable   bool
-	originalY       float32
-	Weapon          Weapon
-	HPBar           rl.Rectangle
-	originalHPWidth float32
-	HP              float32
-	MaxHP           float32
-	Inventory       []*Item
+	X                  float32
+	Y                  float32
+	Width              float32
+	Height             float32
+	Hitbox             rl.Rectangle
+	State              State
+	Sprite             Sprite
+	RightSide          bool
+	isJumping          bool
+	isFalling          bool
+	isInvunerable      bool
+	originalY          float32
+	Weapon             Weapon
+	HPBar              rl.Rectangle
+	originalHPWidth    float32
+	HP                 float32
+	MaxHP              float32
+	Inventory          []*Item
+	projectileSlot     Projectile
+	projectileQuantity int32
 }
 
 type OffsetParams struct {
@@ -116,8 +118,38 @@ func (p *Player) CheckForAttack() {
 
 		for _, mob := range mobs {
 
-			if rl.CheckCollisionRecs(mob.Hitbox, p.Weapon.Hitbox) {
-				mob.HP -= p.Weapon.Damage
+			if !p.Weapon.isRanged {
+
+				if rl.CheckCollisionRecs(mob.Hitbox, p.Weapon.Hitbox) {
+					mob.HP -= p.Weapon.Damage
+				}
+
+			} else if p.projectileQuantity > 0 {
+				logger.Print(p.projectileQuantity)
+
+				hitbox := rl.Rectangle{
+					X:      p.Weapon.Hitbox.X,
+					Y:      p.Weapon.Hitbox.Y,
+					Width:  p.projectileSlot.width,
+					Height: p.projectileSlot.height,
+				}
+
+				projectile := SpawnProjectile(Projectile{
+					hitbox:       hitbox,
+					name:         p.projectileSlot.name,
+					damage:       p.projectileSlot.damage,
+					speed:        p.projectileSlot.speed,
+					isFromPlayer: true,
+				})
+
+				projectile.rightSide = p.RightSide
+
+				logger.Print(p.RightSide)
+				logger.Print(projectile.rightSide)
+
+				p.projectileQuantity--
+
+				projectilesInMap = append(projectilesInMap, &projectile)
 			}
 		}
 	}
@@ -211,16 +243,8 @@ func (p *Player) Draw() {
 	rect := rl.Rectangle{X: p.X, Y: p.Y, Width: p.Width, Height: p.Height}
 	p.Hitbox = rect
 
-	basicWeapon := Weapon{
-		Name:   "Basic Sword",
-		Damage: 50,
-		Hitbox: rl.NewRectangle(p.X+p.Width, p.Y+p.Height/2, 20, 4),
-	}
-
-	p.HPBar = rl.NewRectangle(p.X, p.Y+p.Height, 20, 4)
-	p.originalHPWidth = 20
-
-	p.Weapon = basicWeapon
+	p.Weapon.Hitbox.X = p.X + p.Width
+	p.Weapon.Hitbox.Y = p.Y + p.Height/2
 
 	if p.isFalling || p.isJumping {
 		p.Sprite.FrameRec = rl.NewRectangle(float32(p.Sprite.Texture.Width/8)*7, 0, float32(p.Sprite.Texture.Width/8), float32(p.Sprite.Texture.Height/4))
@@ -249,10 +273,12 @@ func (p *Player) Draw() {
 	if p.RightSide {
 		if p.Sprite.FrameRec.Width < 0 {
 			p.Sprite.FrameRec.Width *= -1
+			p.Weapon.Hitbox.X = p.X - p.Width/2
 		}
 	} else {
 		if p.Sprite.FrameRec.Width > 0 {
 			p.Sprite.FrameRec.Width *= -1
+			p.Weapon.Hitbox.X = p.X - p.Width/2
 		}
 	}
 
