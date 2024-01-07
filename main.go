@@ -18,6 +18,9 @@ var mobs []*Mob
 var itemsInMap []*Item
 var projectilesInMap []*Projectile
 var invulnerabilityTimer = 0
+var isDragging = false
+var dragOffset rl.Vector2
+var disableDragCounter = 0
 
 func FindElementIndex[T any](slice []T, element T) int {
 	for index, elementInSlice := range slice {
@@ -36,6 +39,9 @@ func RemoveFromSlice[T any](slice []T, index int) []T {
 func main() {
 	rl.InitWindow(int32(SCREEN_WIDTH), int32(SCREEN_HEIGHT), GAME_TITLE)
 	defer rl.CloseWindow()
+
+	//Disable esc key for closing the game
+	rl.SetExitKey(0)
 
 	player := GetPlayer()
 	rl.SetTargetFPS(60)
@@ -124,6 +130,10 @@ func main() {
 					isInventoryOpen = true
 				}
 			}
+
+			if rl.IsKeyPressed(rl.KeyEscape) && isInventoryOpen {
+				isInventoryOpen = false
+			}
 		}
 
 		if isInventoryOpen {
@@ -177,7 +187,7 @@ func addTileToMap(x int, y int, solid bool, color color.RGBA) {
 func drawInventoryWindow() {
 	player := GetPlayer()
 	inventoryWindow := GetInventoryWindow()
-	mousePos := rl.GetMousePosition()
+	disableDrag := false
 
 	rl.DrawRectangleRec(inventoryWindow.box, rl.Beige)
 
@@ -193,16 +203,10 @@ func drawInventoryWindow() {
 		initialY += 10
 		rl.DrawText(item.name, int32(initialX), int32(initialY), 8, rl.Black)
 
-		if rl.IsMouseButtonPressed(rl.MouseButtonLeft) && rl.CheckCollisionPointRec(mousePos, item.windowBox) {
-			item.Use()
-
-			index := FindElementIndex(player.Inventory, item)
-
-			if index != -1 {
-				player.Inventory = RemoveFromSlice(player.Inventory, index)
-			}
-		}
+		disableDrag = item.CheckForUse()
 	}
+
+	inventoryWindow.CheckForDrag(disableDrag)
 }
 
 func startDebugPlayer() {

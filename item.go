@@ -30,14 +30,33 @@ type Item struct {
 	windowBox rl.Rectangle
 }
 
-func (item *Item) Use() {
-	itemMap[item.itemId]()
+func (item *Item) CheckForUse() bool {
+	player := GetPlayer()
+	mousePos := rl.GetMousePosition()
+	disableDrag := false
+
+	if rl.IsMouseButtonPressed(rl.MouseButtonLeft) && rl.CheckCollisionPointRec(mousePos, item.windowBox) {
+		disableDragCounter = 1
+		itemMap[item.itemId]()
+
+		index := FindElementIndex(player.Inventory, item)
+
+		if index != -1 {
+			player.Inventory = RemoveFromSlice(player.Inventory, index)
+		}
+	}
+
+	return disableDrag
 }
 
 func heal(value float32) {
 	player := GetPlayer()
 
-	player.HP += value
+	if player.HP+value <= player.MaxHP {
+		player.HP += value
+	} else {
+		player.HP = player.MaxHP
+	}
 }
 
 func (item *Item) DetectCollisionWithItem() {
