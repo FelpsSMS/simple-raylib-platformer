@@ -54,8 +54,8 @@ func main() {
 
 	basicRangedMob := Spawn(Mob{
 		Name: "Ranged", X: 500, Y: 300, Width: 30, Height: 80, HP: 100,
-		MoveSpeed: 8, MovePattern: FIXED_HORIZONTAL, Damage: 5, attackPattern: RANGED_BOTH_SIDES,
-		shootCD: 100,
+		MoveSpeed: 8, MovePattern: FIXED_HORIZONTAL, Damage: 5, attackPattern: RANGED_BOTH_SIDES_RANDOM,
+		shootCD: 10,
 	})
 
 	basicRangedMob.projectile = Projectile{

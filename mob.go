@@ -19,6 +19,7 @@ type AttackPattern int
 const (
 	PACIFIST AttackPattern = iota
 	RANGED_BOTH_SIDES
+	RANGED_BOTH_SIDES_RANDOM
 	RANGED_FRONT
 	MELEE_FRONT
 	MELE_BOTH_SIDES
@@ -146,7 +147,7 @@ func (mob *Mob) dropItems() {
 }
 
 func (mob *Mob) Attack() {
-
+	//TODO: Refactor
 	switch mob.attackPattern {
 	/* 	case PACIFIST: */
 
@@ -154,6 +155,36 @@ func (mob *Mob) Attack() {
 		hitbox := rl.Rectangle{
 			X:      mob.Hitbox.X,
 			Y:      mob.Hitbox.Y + mob.Height/2,
+			Width:  mob.projectile.width,
+			Height: mob.projectile.height,
+		}
+
+		projectile := SpawnProjectile(Projectile{
+			hitbox:       hitbox,
+			name:         mob.projectile.name,
+			damage:       mob.projectile.damage,
+			speed:        mob.projectile.speed,
+			isFromPlayer: false,
+		})
+
+		projectile.rightSide = mob.RightSide
+
+		if mob.shootCDCounter <= 0 {
+			mob.shootCDCounter++
+			logger.Print(mob.shootCDCounter)
+			projectilesInMap = append(projectilesInMap, &projectile)
+
+		} else if mob.shootCDCounter >= mob.shootCD {
+			mob.shootCDCounter = 0
+
+		} else {
+			mob.shootCDCounter++
+		}
+
+	case RANGED_BOTH_SIDES_RANDOM:
+		hitbox := rl.Rectangle{
+			X:      mob.Hitbox.X,
+			Y:      mob.Hitbox.Y + mob.Height*rand.Float32(),
 			Width:  mob.projectile.width,
 			Height: mob.projectile.height,
 		}
