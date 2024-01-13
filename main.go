@@ -52,7 +52,22 @@ func main() {
 	basicMob := Spawn(Mob{Name: "Test", X: 400, Y: 350, Width: 30, Height: 40, HP: 100, MoveSpeed: 2, MovePattern: FIXED_HORIZONTAL, Damage: 5})
 	basicMob.dropTable = append(basicMob.dropTable, ItemDrop{item: basicPotion, chance: 100})
 
+	basicRangedMob := Spawn(Mob{
+		Name: "Ranged", X: 500, Y: 300, Width: 30, Height: 80, HP: 100,
+		MoveSpeed: 8, MovePattern: FIXED_HORIZONTAL, Damage: 5, attackPattern: RANGED_BOTH_SIDES,
+		shootCD: 100,
+	})
+
+	basicRangedMob.projectile = Projectile{
+		name:   "Basic Mob Shot",
+		damage: 15,
+		speed:  3,
+		width:  12,
+		height: 18,
+	}
+
 	mobs = append(mobs, basicMob)
+	mobs = append(mobs, basicRangedMob)
 
 	isInventoryOpen := false
 
@@ -77,6 +92,7 @@ func main() {
 			for _, mob := range mobs {
 				mob.Move()
 				mob.ApplyGravity()
+				mob.Attack()
 			}
 
 			for _, item := range itemsInMap {
@@ -165,7 +181,7 @@ func initiateLevel() {
 
 	addTileToMap(4, 8, true, rl.Brown)
 	addTileToMap(8, 5, true, rl.Brown)
-	addTileToMap(18, 3, false, rl.Blue)
+	// addTileToMap(18, 3, false, rl.Blue)
 
 	for i := 2; i <= tilesInY; i++ {
 		addTileToMap(tilesInX-1, i, true, rl.DarkPurple)

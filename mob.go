@@ -14,6 +14,16 @@ const (
 	JUMPING
 )
 
+type AttackPattern int
+
+const (
+	PACIFIST AttackPattern = iota
+	RANGED_BOTH_SIDES
+	RANGED_FRONT
+	MELEE_FRONT
+	MELE_BOTH_SIDES
+)
+
 type Mob struct {
 	X               float32
 	Y               float32
@@ -37,6 +47,10 @@ type Mob struct {
 	originalHPWidth float32
 	Damage          float32
 	dropTable       []ItemDrop
+	projectile      Projectile
+	attackPattern   AttackPattern
+	shootCD         float32
+	shootCDCounter  float32
 }
 
 func Spawn(mob Mob) *Mob {
@@ -50,6 +64,7 @@ func Spawn(mob Mob) *Mob {
 	mob.MaxHP = mob.HP
 	mob.HPBar = rl.NewRectangle(mob.X, mob.Y+mob.Height, 20, 4)
 	mob.originalHPWidth = 20
+	mob.shootCDCounter = 0
 
 	return &mob
 }
@@ -62,16 +77,17 @@ func (mob *Mob) Move() {
 
 	case FIXED_HORIZONTAL:
 
-		if mob.X == mob.SpawnX+maxDistanceX {
+		if mob.X >= mob.SpawnX+maxDistanceX {
 			mob.RightSide = true
 		}
 
-		if mob.X == mob.SpawnX-maxDistanceX {
+		if mob.X <= mob.SpawnX-maxDistanceX {
 			mob.RightSide = false
 		}
 
 		if mob.RightSide {
 			mob.X -= mob.MoveSpeed
+
 		} else {
 			mob.X += mob.MoveSpeed
 		}
@@ -127,6 +143,45 @@ func (mob *Mob) dropItems() {
 			itemsInMap = append(itemsInMap, &itemDrop.item)
 		}
 	}
+}
+
+func (mob *Mob) Attack() {
+
+	switch mob.attackPattern {
+	/* 	case PACIFIST: */
+
+	case RANGED_BOTH_SIDES:
+		hitbox := rl.Rectangle{
+			X:      mob.Hitbox.X,
+			Y:      mob.Hitbox.Y + mob.Height/2,
+			Width:  mob.projectile.width,
+			Height: mob.projectile.height,
+		}
+
+		projectile := SpawnProjectile(Projectile{
+			hitbox:       hitbox,
+			name:         mob.projectile.name,
+			damage:       mob.projectile.damage,
+			speed:        mob.projectile.speed,
+			isFromPlayer: false,
+		})
+
+		projectile.rightSide = mob.RightSide
+
+		if mob.shootCDCounter <= 0 {
+			mob.shootCDCounter++
+			logger.Print(mob.shootCDCounter)
+			projectilesInMap = append(projectilesInMap, &projectile)
+
+		} else if mob.shootCDCounter >= mob.shootCD {
+			mob.shootCDCounter = 0
+
+		} else {
+			mob.shootCDCounter++
+		}
+
+	}
+
 }
 
 func (mob *Mob) Draw() {

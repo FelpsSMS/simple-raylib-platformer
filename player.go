@@ -125,7 +125,6 @@ func (p *Player) CheckForAttack() {
 				}
 
 			} else if p.projectileQuantity > 0 {
-				logger.Print(p.projectileQuantity)
 
 				hitbox := rl.Rectangle{
 					X:      p.Weapon.Hitbox.X,
@@ -143,9 +142,6 @@ func (p *Player) CheckForAttack() {
 				})
 
 				projectile.rightSide = p.RightSide
-
-				logger.Print(p.RightSide)
-				logger.Print(projectile.rightSide)
 
 				p.projectileQuantity--
 
