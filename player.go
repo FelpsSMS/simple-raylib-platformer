@@ -1,8 +1,6 @@
 package main
 
 import (
-	"sync"
-
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
@@ -54,36 +52,31 @@ type OffsetParams struct {
 	Height float32
 }
 
-var (
-	playerInstance *Player
-	playerOnce     sync.Once
-)
+func NewPlayer() *Player {
+	playerTexture := rl.LoadTexture("assets/player/player-spritemap-v9.png")
+
+	return &Player{
+		State:         IDLE,
+		X:             100,
+		Y:             100,
+		Width:         16,
+		Height:        38,
+		RightSide:     true,
+		isJumping:     false,
+		originalY:     100,
+		isFalling:     true,
+		isInvunerable: false,
+		HP:            200,
+		MaxHP:         200,
+		Sprite: Sprite{
+			Texture:  playerTexture,
+			FrameRec: rl.NewRectangle(0, 0, float32(playerTexture.Width/8), float32(playerTexture.Height/4)),
+			Position: rl.Vector2{X: 100, Y: 100},
+		},
+	}
+}
 
 func GetPlayer() *Player {
-	playerOnce.Do(func() {
-		playerTexture := rl.LoadTexture("assets/player/player-spritemap-v9.png")
-
-		playerInstance = &Player{
-			State:         IDLE,
-			X:             100,
-			Y:             100,
-			Width:         16,
-			Height:        38,
-			RightSide:     true,
-			isJumping:     false,
-			originalY:     100,
-			isFalling:     true,
-			isInvunerable: false,
-			HP:            200,
-			MaxHP:         200,
-			Sprite: Sprite{
-				Texture:  playerTexture,
-				FrameRec: rl.NewRectangle(0, 0, float32(playerTexture.Width/8), float32(playerTexture.Height/4)),
-				Position: rl.Vector2{X: 100, Y: 100},
-			},
-		}
-	})
-
 	return playerInstance
 }
 

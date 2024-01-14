@@ -21,6 +21,7 @@ var invulnerabilityTimer = 0
 var isDragging = false
 var dragOffset rl.Vector2
 var disableDragCounter = 0
+var playerInstance *Player
 
 func FindElementIndex[T any](slice []T, element T) int {
 	for index, elementInSlice := range slice {
@@ -43,50 +44,33 @@ func main() {
 	//Disable esc key for closing the game
 	rl.SetExitKey(0)
 
-	player := GetPlayer()
+	playerInstance = startDebugPlayer()
+
 	rl.SetTargetFPS(60)
 
-	defer rl.UnloadTexture(player.Sprite.Texture)
-	basicPotion := Item{name: "Basic potion", itemId: "basicPotion", hitbox: rl.NewRectangle(0, 0, 12, 12)}
-
-	basicMob := Spawn(Mob{Name: "Test", X: 400, Y: 350, Width: 30, Height: 40, HP: 100, MoveSpeed: 2, MovePattern: FIXED_HORIZONTAL, Damage: 5})
-	basicMob.dropTable = append(basicMob.dropTable, ItemDrop{item: basicPotion, chance: 100})
-
-	basicRangedMob := Spawn(Mob{
-		Name: "Ranged", X: 500, Y: 300, Width: 30, Height: 80, HP: 100,
-		MoveSpeed: 8, MovePattern: FIXED_HORIZONTAL, Damage: 5, attackPattern: RANGED_BOTH_SIDES_RANDOM,
-		shootCD: 10,
-	})
-
-	basicRangedMob.projectile = Projectile{
-		name:   "Basic Mob Shot",
-		damage: 15,
-		speed:  3,
-		width:  12,
-		height: 18,
-	}
-
-	mobs = append(mobs, basicMob)
-	mobs = append(mobs, basicRangedMob)
+	defer rl.UnloadTexture(playerInstance.Sprite.Texture)
+	startDebugItemsAndMobs()
 
 	isInventoryOpen := false
 
-	startDebugPlayer()
-
 	for !rl.WindowShouldClose() {
-		player.CheckForPause()
+		playerInstance.CheckForPause()
 		//logger.Print(projectilesInMap)
 
-		if player.State != PAUSED && player.State != DEAD {
-			player.CheckForMovement()
-			player.CheckForAttack()
-			player.ApplyGravity()
-			player.CheckForCollision()
+		if rl.IsKeyPressed(rl.KeyR) {
+			resetWorld()
+		}
+
+		if playerInstance.State != PAUSED && playerInstance.State != DEAD {
+			playerInstance.CheckForMovement()
+			playerInstance.CheckForAttack()
+			playerInstance.ApplyGravity()
+			playerInstance.CheckForCollision()
 
 			if invulnerabilityTimer > 0 {
 				invulnerabilityTimer--
 			} else {
-				player.isInvunerable = false
+				playerInstance.isInvunerable = false
 			}
 
 			for _, mob := range mobs {
@@ -106,11 +90,11 @@ func main() {
 		} else {
 			displayText := ""
 
-			if player.State == DEAD {
+			if playerInstance.State == DEAD {
 				displayText = "GAME OVER"
 			}
 
-			if player.State == PAUSED {
+			if playerInstance.State == PAUSED {
 				displayText = "PAUSED"
 			}
 
@@ -122,7 +106,7 @@ func main() {
 		rl.ClearBackground(rl.RayWhite)
 
 		initiateLevel()
-		player.Draw()
+		playerInstance.Draw()
 
 		for _, mob := range mobs {
 			mob.Draw()
@@ -136,7 +120,7 @@ func main() {
 			projectile.Draw()
 		}
 
-		if player.State != PAUSED && player.State != DEAD {
+		if playerInstance.State != PAUSED && playerInstance.State != DEAD {
 			if rl.IsKeyPressed(rl.KeyI) {
 
 				if isInventoryOpen {
@@ -158,6 +142,40 @@ func main() {
 
 		rl.EndDrawing()
 	}
+}
+
+func resetWorld() {
+	itemsInMap = nil
+	projectilesInMap = nil
+	tiles = nil
+	mobs = nil
+
+	playerInstance = startDebugPlayer()
+	startDebugItemsAndMobs()
+}
+
+func startDebugItemsAndMobs() {
+	basicPotion := Item{name: "Basic potion", itemId: "basicPotion", hitbox: rl.NewRectangle(0, 0, 12, 12)}
+
+	basicMob := Spawn(Mob{Name: "Test", X: 400, Y: 350, Width: 30, Height: 40, HP: 100, MoveSpeed: 2, MovePattern: FIXED_HORIZONTAL, Damage: 5})
+	basicMob.dropTable = append(basicMob.dropTable, ItemDrop{item: basicPotion, chance: 100})
+
+	basicRangedMob := Spawn(Mob{
+		Name: "Ranged", X: 500, Y: 300, Width: 30, Height: 80, HP: 100,
+		MoveSpeed: 8, MovePattern: FIXED_HORIZONTAL, Damage: 5, attackPattern: RANGED_BOTH_SIDES_RANDOM,
+		shootCD: 10,
+	})
+
+	basicRangedMob.projectile = Projectile{
+		name:   "Basic Mob Shot",
+		damage: 15,
+		speed:  3,
+		width:  12,
+		height: 18,
+	}
+
+	mobs = append(mobs, basicMob)
+	mobs = append(mobs, basicRangedMob)
 }
 
 func initiateLevel() {
@@ -225,8 +243,8 @@ func drawInventoryWindow() {
 	inventoryWindow.CheckForDrag(disableDrag)
 }
 
-func startDebugPlayer() {
-	p := GetPlayer()
+func startDebugPlayer() *Player {
+	p := NewPlayer()
 
 	basicWeapon := Weapon{
 		Name:     "Basic Sword",
@@ -257,4 +275,6 @@ func startDebugPlayer() {
 	p.Weapon = basicRangedWeapon
 	p.projectileQuantity = 100
 	p.projectileSlot = basicProjectile
+
+	return p
 }
