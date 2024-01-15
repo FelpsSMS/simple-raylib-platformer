@@ -37,6 +37,14 @@ func RemoveFromSlice[T any](slice []T, index int) []T {
 	return append(slice[:index], slice[index+1:]...)
 }
 
+func DrawOutlinedText(text string, posX int32, posY int32, fontSize int32, color rl.Color, outlineSize int32, outlineColor rl.Color) {
+	rl.DrawText(text, posX-outlineSize, posY-outlineSize, fontSize, outlineColor)
+	rl.DrawText(text, posX+outlineSize, posY-outlineSize, fontSize, outlineColor)
+	rl.DrawText(text, posX-outlineSize, posY+outlineSize, fontSize, outlineColor)
+	rl.DrawText(text, posX+outlineSize, posY+outlineSize, fontSize, outlineColor)
+	rl.DrawText(text, posX, posY, fontSize, color)
+}
+
 func main() {
 	rl.InitWindow(int32(SCREEN_WIDTH), int32(SCREEN_HEIGHT), GAME_TITLE)
 	defer rl.CloseWindow()
@@ -98,7 +106,12 @@ func main() {
 				displayText = "PAUSED"
 			}
 
-			rl.DrawText(displayText, int32(SCREEN_WIDTH)/2, int32(SCREEN_HEIGHT)/2, 40, rl.LightGray)
+			DrawOutlinedText(displayText, int32(SCREEN_WIDTH)/2, int32(SCREEN_HEIGHT)/2, 40, rl.LightGray, 2, rl.Black)
+
+			if playerInstance.State == DEAD {
+				DrawOutlinedText("PRESS 'R' TO TRY AGAIN", int32(SCREEN_WIDTH)/2-150, int32(SCREEN_HEIGHT)/2+100, 30, rl.LightGray, 2, rl.Black)
+			}
+
 		}
 
 		rl.BeginDrawing()
