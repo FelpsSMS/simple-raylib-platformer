@@ -171,7 +171,6 @@ func (mob *Mob) Attack() {
 
 		if mob.shootCDCounter <= 0 {
 			mob.shootCDCounter++
-			logger.Print(mob.shootCDCounter)
 			projectilesInMap = append(projectilesInMap, &projectile)
 
 		} else if mob.shootCDCounter >= mob.shootCD {
@@ -201,7 +200,6 @@ func (mob *Mob) Attack() {
 
 		if mob.shootCDCounter <= 0 {
 			mob.shootCDCounter++
-			logger.Print(mob.shootCDCounter)
 			projectilesInMap = append(projectilesInMap, &projectile)
 
 		} else if mob.shootCDCounter >= mob.shootCD {

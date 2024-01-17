@@ -32,7 +32,6 @@ func FindElementIndex[T any](slice []T, element T) int {
 			return index
 		}
 	}
-
 	return -1
 }
 
@@ -57,6 +56,18 @@ func main() {
 
 	playerInstance = startDebugPlayer()
 	inventoryWindow = GetInventoryWindow()
+
+	closeInventoryWindowComponent := &Component{
+		window:       inventoryWindow,
+		sprite:       &Sprite{},
+		windowOffset: rl.Vector2{X: inventoryWindow.box.Width - 25, Y: 5},
+	}
+
+	closeInventoryWindowComponent.box = rl.NewRectangle(inventoryWindow.box.X, window.box.Y, 20, 20)
+
+	closeInventoryWindowComponent.onClick = append(closeInventoryWindowComponent.onClick, closeInventoryWindowComponent.CloseWindow)
+
+	inventoryWindow.components = append(inventoryWindow.components, closeInventoryWindowComponent)
 
 	rl.SetTargetFPS(60)
 
@@ -120,7 +131,7 @@ func main() {
 			projectile.Draw()
 		}
 
-		index := FindElementIndex(openWindows, inventoryWindow)
+		index := FindWindowIndex(openWindows, inventoryWindow)
 
 		if playerInstance.State != PAUSED && playerInstance.State != DEAD {
 
@@ -165,6 +176,10 @@ func main() {
 			drawInventoryWindow()
 		}
 
+		for _, openWindow := range openWindows {
+			openWindow.Draw()
+		}
+
 		for _, component := range openComponents {
 			component.Draw()
 			component.CheckForClickEvent()
@@ -187,15 +202,8 @@ func resetWorld() {
 func startDebugItemsAndMobs() {
 	basicPotion := Item{name: "Basic potion", itemId: "basicPotion", hitbox: rl.NewRectangle(0, 0, 12, 12)}
 
-	basicPotion.itemComponent = &Component{window: inventoryWindow, context: basicPotion}
+	basicPotion.itemComponent = &Component{window: inventoryWindow, context: basicPotion, newWindowOpen: false}
 	basicPotion.itemComponent.onClick = append(basicPotion.itemComponent.onClick, basicPotion.itemComponent.CheckForTogglingItemWindow)
-
-	/* 	closeInventoryWindowComponent := &Component{
-		box:    rl.NewRectangle(inventoryWindow.box.Width, inventoryWindow.box.Height, 20, 20),
-		window: inventoryWindow,
-	} */
-
-	//closeInventoryWindowComponent.onClick = append(closeInventoryWindowComponent.onClick, closeInventoryWindowComponent.CloseWindow)
 
 	basicMob := Spawn(Mob{Name: "Test", X: 400, Y: 350, Width: 30, Height: 40, HP: 100, MoveSpeed: 2, MovePattern: FIXED_HORIZONTAL, Damage: 5})
 	basicMob.dropTable = append(basicMob.dropTable, ItemDrop{item: basicPotion, chance: 100})
