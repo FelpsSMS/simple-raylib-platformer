@@ -66,7 +66,7 @@ func NewPlayer() *Player {
 		originalY:     100,
 		isFalling:     true,
 		isInvunerable: false,
-		HP:            10,
+		HP:            100,
 		MaxHP:         200,
 		Sprite: Sprite{
 			Texture:  playerTexture,

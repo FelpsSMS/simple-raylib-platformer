@@ -10,11 +10,17 @@ type Window struct {
 	box        rl.Rectangle
 	sprite     Sprite
 	components []*Component
+	parent     *Window
+	isOpen     bool
 }
 
 type Component struct {
-	box    rl.Rectangle
-	sprite Sprite
+	box     rl.Rectangle
+	window  *Window
+	sprite  Sprite
+	text    string
+	context interface{}
+	onClick []func()
 }
 
 var (
@@ -70,4 +76,114 @@ func GetInventoryWindow() *Window {
 	})
 
 	return window
+}
+
+func (window *Window) SetWindowIsOpen(isOpen bool) {
+	window.isOpen = isOpen
+
+	index := FindElementIndex(openWindows, inventoryWindow)
+
+	if window.isOpen {
+		if index == -1 {
+			openWindows = append(openWindows, inventoryWindow)
+
+			for _, component := range window.components {
+				componentIndex := FindElementIndex(openComponents, component)
+
+				if componentIndex == -1 {
+					openComponents = append(openComponents, component)
+				}
+			}
+		}
+	} else {
+		if index != -1 {
+			openWindows = RemoveFromSlice(openWindows, index)
+
+			for _, component := range window.components {
+				componentIndex := FindElementIndex(openComponents, component)
+
+				if componentIndex != -1 {
+					openComponents = RemoveFromSlice(openComponents, componentIndex)
+				}
+			}
+		}
+	}
+
+}
+
+func (component *Component) CloseWindow() {
+	currentWindow := component.window
+
+windowLoop:
+	for {
+
+		for _, window := range openWindows {
+
+			if window.parent == currentWindow {
+				index := FindElementIndex(openWindows, currentWindow)
+
+				if index != -1 {
+					openWindows = RemoveFromSlice(openWindows, index)
+				}
+
+				currentWindow = window
+
+				continue windowLoop
+			}
+
+			break windowLoop
+		}
+	}
+}
+
+func (component *Component) Draw() {
+	//rl.DrawRectangleRec(component.box, rl.Orange)
+}
+
+/* func (component *Component) CheckComponentsIfWindowIsOpen() {
+	if component.window.isOpen {
+
+		for _, windowComponent := range openComponents {
+			index := FindElementIndex(openComponents, windowComponent)
+
+			if index == -1 {
+				openComponents = append(openComponents, windowComponent)
+			}
+		}
+
+	} else {
+
+		for _, windowComponent := range openComponents {
+			index := FindElementIndex(openComponents, windowComponent)
+
+			if index != -1 {
+				openComponents = RemoveFromSlice(openComponents, index)
+			}
+		}
+	}
+} */
+
+func (component *Component) CheckForTogglingItemWindow() {
+	//player := GetPlayer()
+	mousePos := rl.GetMousePosition()
+
+	if rl.IsMouseButtonPressed(rl.MouseButtonRight) && rl.CheckCollisionPointRec(mousePos, component.box) {
+		logger.Print("open description window")
+		/* index := -1
+
+		if item, ok := component.context.(*Item); ok {
+			index = FindElementIndex(player.Inventory, item)
+		}
+
+		if index != -1 {
+			player.Inventory = RemoveFromSlice(player.Inventory, index)
+		} */
+	}
+}
+
+func (component *Component) CheckForClickEvent() {
+	for _, fn := range component.onClick {
+		fn()
+	}
+
 }

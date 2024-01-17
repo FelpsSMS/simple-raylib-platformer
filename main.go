@@ -22,6 +22,9 @@ var isDragging = false
 var dragOffset rl.Vector2
 var disableDragCounter = 0
 var playerInstance *Player
+var openWindows []*Window
+var inventoryWindow *Window
+var openComponents []*Component
 
 func FindElementIndex[T any](slice []T, element T) int {
 	for index, elementInSlice := range slice {
@@ -53,13 +56,14 @@ func main() {
 	rl.SetExitKey(0)
 
 	playerInstance = startDebugPlayer()
+	inventoryWindow = GetInventoryWindow()
 
 	rl.SetTargetFPS(60)
 
 	defer rl.UnloadTexture(playerInstance.Sprite.Texture)
 	startDebugItemsAndMobs()
 
-	isInventoryOpen := false
+	inventoryWindow.isOpen = false
 
 	for !rl.WindowShouldClose() {
 		playerInstance.CheckForPause()
@@ -95,23 +99,6 @@ func main() {
 				projectile.Move()
 			}
 
-		} else {
-			displayText := ""
-
-			if playerInstance.State == DEAD {
-				displayText = "GAME OVER"
-			}
-
-			if playerInstance.State == PAUSED {
-				displayText = "PAUSED"
-			}
-
-			DrawOutlinedText(displayText, int32(SCREEN_WIDTH)/2, int32(SCREEN_HEIGHT)/2, 40, rl.LightGray, 2, rl.Black)
-
-			if playerInstance.State == DEAD {
-				DrawOutlinedText("PRESS 'R' TO TRY AGAIN", int32(SCREEN_WIDTH)/2-150, int32(SCREEN_HEIGHT)/2+100, 30, rl.LightGray, 2, rl.Black)
-			}
-
 		}
 
 		rl.BeginDrawing()
@@ -133,24 +120,54 @@ func main() {
 			projectile.Draw()
 		}
 
+		index := FindElementIndex(openWindows, inventoryWindow)
+
 		if playerInstance.State != PAUSED && playerInstance.State != DEAD {
+
+			if index != -1 {
+				RemoveFromSlice(openWindows, index)
+			}
+
 			if rl.IsKeyPressed(rl.KeyI) {
 
-				if isInventoryOpen {
-					isInventoryOpen = false
+				if inventoryWindow.isOpen {
+					inventoryWindow.SetWindowIsOpen(false)
 
 				} else {
-					isInventoryOpen = true
+					inventoryWindow.SetWindowIsOpen(true)
 				}
 			}
 
-			if rl.IsKeyPressed(rl.KeyEscape) && isInventoryOpen {
-				isInventoryOpen = false
+			if rl.IsKeyPressed(rl.KeyEscape) && inventoryWindow.isOpen {
+				inventoryWindow.SetWindowIsOpen(false)
+			}
+
+		} else {
+			displayText := ""
+			openWindows = nil
+
+			if playerInstance.State == DEAD {
+				displayText = "GAME OVER"
+			}
+
+			if playerInstance.State == PAUSED {
+				displayText = "PAUSED"
+			}
+
+			DrawOutlinedText(displayText, int32(SCREEN_WIDTH)/2, int32(SCREEN_HEIGHT)/2, 40, rl.LightGray, 2, rl.Black)
+
+			if playerInstance.State == DEAD {
+				DrawOutlinedText("PRESS 'R' TO TRY AGAIN", int32(SCREEN_WIDTH)/2-150, int32(SCREEN_HEIGHT)/2+100, 30, rl.LightGray, 2, rl.Black)
 			}
 		}
 
-		if isInventoryOpen {
+		if inventoryWindow.isOpen && index != -1 {
 			drawInventoryWindow()
+		}
+
+		for _, component := range openComponents {
+			component.Draw()
+			component.CheckForClickEvent()
 		}
 
 		rl.EndDrawing()
@@ -169,6 +186,16 @@ func resetWorld() {
 
 func startDebugItemsAndMobs() {
 	basicPotion := Item{name: "Basic potion", itemId: "basicPotion", hitbox: rl.NewRectangle(0, 0, 12, 12)}
+
+	basicPotion.itemComponent = &Component{window: inventoryWindow, context: basicPotion}
+	basicPotion.itemComponent.onClick = append(basicPotion.itemComponent.onClick, basicPotion.itemComponent.CheckForTogglingItemWindow)
+
+	/* 	closeInventoryWindowComponent := &Component{
+		box:    rl.NewRectangle(inventoryWindow.box.Width, inventoryWindow.box.Height, 20, 20),
+		window: inventoryWindow,
+	} */
+
+	//closeInventoryWindowComponent.onClick = append(closeInventoryWindowComponent.onClick, closeInventoryWindowComponent.CloseWindow)
 
 	basicMob := Spawn(Mob{Name: "Test", X: 400, Y: 350, Width: 30, Height: 40, HP: 100, MoveSpeed: 2, MovePattern: FIXED_HORIZONTAL, Damage: 5})
 	basicMob.dropTable = append(basicMob.dropTable, ItemDrop{item: basicPotion, chance: 100})
@@ -189,6 +216,8 @@ func startDebugItemsAndMobs() {
 
 	mobs = append(mobs, basicMob)
 	mobs = append(mobs, basicRangedMob)
+
+	GetPlayer().Inventory = append(GetPlayer().Inventory, &basicPotion)
 }
 
 func initiateLevel() {
@@ -233,7 +262,6 @@ func addTileToMap(x int, y int, solid bool, color color.RGBA) {
 
 func drawInventoryWindow() {
 	player := GetPlayer()
-	inventoryWindow := GetInventoryWindow()
 	disableDrag := false
 
 	rl.DrawRectangleRec(inventoryWindow.box, rl.Beige)
@@ -243,7 +271,14 @@ func drawInventoryWindow() {
 
 	for _, item := range player.Inventory {
 		itemBox := rl.Rectangle{X: initialX, Y: initialY, Width: 20, Height: 20}
-		item.windowBox = itemBox
+		item.itemComponent.box = itemBox
+
+		itemComponentIndex := FindElementIndex(openComponents, item.itemComponent)
+
+		if itemComponentIndex == -1 {
+			openComponents = append(openComponents, item.itemComponent)
+			inventoryWindow.components = append(inventoryWindow.components, item.itemComponent)
+		}
 
 		rl.DrawRectangleRec(itemBox, rl.Blue)
 		initialX += 10

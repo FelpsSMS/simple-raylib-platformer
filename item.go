@@ -22,12 +22,12 @@ type ItemDrop struct {
 }
 
 type Item struct {
-	itemId    string
-	itemType  ItemType
-	name      string
-	sprite    Sprite
-	hitbox    rl.Rectangle
-	windowBox rl.Rectangle
+	itemId        string
+	itemType      ItemType
+	name          string
+	sprite        Sprite
+	hitbox        rl.Rectangle
+	itemComponent *Component
 }
 
 func (item *Item) CheckForUse() bool {
@@ -35,7 +35,7 @@ func (item *Item) CheckForUse() bool {
 	mousePos := rl.GetMousePosition()
 	disableDrag := false
 
-	if rl.IsMouseButtonPressed(rl.MouseButtonLeft) && rl.CheckCollisionPointRec(mousePos, item.windowBox) {
+	if rl.IsMouseButtonPressed(rl.MouseButtonLeft) && rl.CheckCollisionPointRec(mousePos, item.itemComponent.box) {
 		disableDragCounter = 1
 		itemMap[item.itemId]()
 
