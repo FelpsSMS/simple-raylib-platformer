@@ -7,10 +7,11 @@ import (
 )
 
 type Window struct {
+	id         string
 	box        rl.Rectangle
 	sprite     Sprite
-	components []*Component
 	parent     *Window
+	components []*Component
 	isOpen     bool
 }
 
@@ -29,16 +30,6 @@ var (
 	window        *Window
 	inventoryOnce sync.Once
 )
-
-func FindWindowIndex(slice []*Window, window *Window) int {
-	for index, elementInSlice := range slice {
-		if *elementInSlice == *window {
-			return index
-		}
-	}
-
-	return -1
-}
 
 func (window *Window) CheckForDrag(disableDrag bool) {
 	if disableDrag {
@@ -80,6 +71,7 @@ func GetInventoryWindow() *Window {
 	inventoryOnce.Do(func() {
 		window = &Window{
 			box:    rect,
+			id:     "inventoryWindow",
 			parent: nil,
 		}
 		// window.box.X = float32(SCREEN_WIDTH / 4)
@@ -94,7 +86,6 @@ func GetInventoryWindow() *Window {
 func (window *Window) Draw() {
 
 	for _, openWindow := range openWindows {
-		logger.Print(openWindows)
 
 		if window.parent == openWindow && window.isOpen {
 			rl.DrawRectangleRec(window.box, rl.DarkGray)
@@ -105,7 +96,7 @@ func (window *Window) Draw() {
 func (window *Window) SetWindowIsOpen(isOpen bool) {
 	window.isOpen = isOpen
 
-	index := FindWindowIndex(openWindows, window)
+	index := FindElementIndex(openWindows, window)
 
 	if window.isOpen {
 		if index == -1 {
@@ -116,6 +107,16 @@ func (window *Window) SetWindowIsOpen(isOpen bool) {
 
 				if componentIndex == -1 {
 					openComponents = append(openComponents, component)
+				}
+			}
+		} else {
+			openWindows = RemoveFromSlice(openWindows, index)
+
+			for _, component := range window.components {
+				componentIndex := FindElementIndex(openComponents, component)
+
+				if componentIndex != -1 {
+					openComponents = RemoveFromSlice(openComponents, componentIndex)
 				}
 			}
 		}
@@ -157,6 +158,7 @@ func (component *Component) CloseWindow() {
 
 			}
 			currentWindow.SetWindowIsOpen(false)
+			component.window.SetWindowIsOpen(false)
 
 			break windowLoop
 		}
@@ -176,8 +178,16 @@ func (component *Component) CheckForTogglingItemWindow() {
 	mousePos := rl.GetMousePosition()
 
 	if rl.IsMouseButtonPressed(rl.MouseButtonRight) && rl.CheckCollisionPointRec(mousePos, component.box) && !component.newWindowOpen {
-		box := rl.NewRectangle(component.box.X, component.box.Y, 100, 60)
-		newWindow := &Window{box: box, parent: inventoryWindow, sprite: Sprite{}, isOpen: false}
+		box := rl.NewRectangle(component.box.X, component.box.Y-80, 100, 60)
+		//newWindow := Window{box: box, parent: inventoryWindow, sprite: Sprite{}, isOpen: false}
+
+		newWindow := new(Window)
+		newWindow.box = box
+		newWindow.parent = inventoryWindow
+		newWindow.sprite = Sprite{}
+		newWindow.isOpen = false
+		newWindow.id = "itemDescription"
+
 		newWindow.SetWindowIsOpen(true)
 		component.newWindowOpen = true
 	}

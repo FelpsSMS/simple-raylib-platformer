@@ -84,6 +84,8 @@ func main() {
 			resetWorld()
 		}
 
+		logger.Print(openWindows)
+
 		if playerInstance.State != PAUSED && playerInstance.State != DEAD {
 			playerInstance.CheckForMovement()
 			playerInstance.CheckForAttack()
@@ -131,13 +133,9 @@ func main() {
 			projectile.Draw()
 		}
 
-		index := FindWindowIndex(openWindows, inventoryWindow)
+		index := FindElementIndex(openWindows, inventoryWindow)
 
 		if playerInstance.State != PAUSED && playerInstance.State != DEAD {
-
-			if index != -1 {
-				RemoveFromSlice(openWindows, index)
-			}
 
 			if rl.IsKeyPressed(rl.KeyI) {
 
