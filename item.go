@@ -43,6 +43,8 @@ func (item *Item) CheckForUse() {
 		if index != -1 {
 			player.Inventory = RemoveFromSlice(player.Inventory, index)
 		}
+
+		item.itemComponent.newWindow.SetWindowIsOpen(false)
 	}
 
 	inventoryWindow.disableDrag = false

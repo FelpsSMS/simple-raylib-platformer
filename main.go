@@ -18,15 +18,11 @@ var mobs []*Mob
 var itemsInMap []*Item
 var projectilesInMap []*Projectile
 var invulnerabilityTimer = 0
-var isDragging = false
 var dragOffset rl.Vector2
-var disableDragCounter = 0
 var playerInstance *Player
 var openWindows []*Window
 var inventoryWindow *Window
 var openComponents []*Component
-var auxFrameTime float32
-var taggedWindowsForDrag []*Window
 
 func FindElementIndex[T any](slice []T, element T) int {
 	for index, elementInSlice := range slice {

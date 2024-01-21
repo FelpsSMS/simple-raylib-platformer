@@ -58,20 +58,21 @@ func (window *Window) CheckForDrag() {
 			rl.CheckCollisionPointRec(mousePos, rl.NewRectangle(window.box.X-bufferZone, window.box.Y-bufferZone, window.box.Width+bufferZone*2, window.box.Height+bufferZone*2)) {
 
 			for _, openWindow := range openWindows {
+
 				if openWindow.isDragging && openWindow != window {
-					logger.Print("Returned")
 					return
 				}
 			}
-
-			logger.Print(window.id)
 
 			maxZIndexWindow := window
 			maxZIndex := window.zIndex
 
 			for _, openWindow := range openWindows {
-				if openWindow != window && (rl.CheckCollisionPointRec(mousePos, window.box) ||
-					rl.CheckCollisionPointRec(mousePos, rl.NewRectangle(window.box.X-bufferZone, window.box.Y-bufferZone, window.box.Width+bufferZone*2, window.box.Height+bufferZone*2))) {
+				if openWindow != window && (rl.CheckCollisionPointRec(mousePos, openWindow.box) ||
+					rl.CheckCollisionPointRec(mousePos, rl.NewRectangle(openWindow.box.X-bufferZone, openWindow.box.Y-bufferZone, openWindow.box.Width+bufferZone*2, openWindow.box.Height+bufferZone*2))) {
+
+					logger.Printf("Window %v", openWindow)
+
 					if openWindow.zIndex > maxZIndex {
 						maxZIndex = openWindow.zIndex
 						maxZIndexWindow = openWindow
@@ -123,8 +124,6 @@ func (window *Window) SetWindowIsOpen(isOpen bool) {
 	window.isOpen = isOpen
 
 	index := FindElementIndex(openWindows, window)
-
-	logger.Print(openWindows)
 
 	if window.isOpen {
 		if index == -1 {
