@@ -30,13 +30,12 @@ type Item struct {
 	itemComponent *Component
 }
 
-func (item *Item) CheckForUse() bool {
+func (item *Item) CheckForUse() {
 	player := GetPlayer()
 	mousePos := rl.GetMousePosition()
-	disableDrag := false
 
 	if rl.IsMouseButtonPressed(rl.MouseButtonLeft) && rl.CheckCollisionPointRec(mousePos, item.itemComponent.box) {
-		disableDragCounter = 1
+		inventoryWindow.disableDragCounter = 1
 		itemMap[item.itemId]()
 
 		index := FindElementIndex(player.Inventory, item)
@@ -46,7 +45,7 @@ func (item *Item) CheckForUse() bool {
 		}
 	}
 
-	return disableDrag
+	inventoryWindow.disableDrag = false
 }
 
 func heal(value float32) {

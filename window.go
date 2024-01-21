@@ -7,23 +7,27 @@ import (
 )
 
 type Window struct {
-	id         string
-	box        rl.Rectangle
-	sprite     Sprite
-	parent     *Window
-	components []*Component
-	isOpen     bool
+	id                 string
+	box                rl.Rectangle
+	sprite             Sprite
+	parent             *Window
+	components         []*Component
+	isOpen             bool
+	isDragging         bool
+	disableDrag        bool
+	disableDragCounter int32
+	zIndex             int32
 }
 
 type Component struct {
-	box           rl.Rectangle
-	window        *Window
-	sprite        *Sprite
-	text          string
-	windowOffset  rl.Vector2
-	newWindowOpen bool
-	context       interface{}
-	onClick       []func()
+	box          rl.Rectangle
+	window       *Window
+	sprite       *Sprite
+	text         string
+	windowOffset rl.Vector2
+	newWindow    *Window
+	context      interface{}
+	onClick      []func()
 }
 
 var (
@@ -31,17 +35,18 @@ var (
 	inventoryOnce sync.Once
 )
 
-func (window *Window) CheckForDrag(disableDrag bool) {
-	if disableDrag {
-		disableDragCounter = 1
+func (window *Window) CheckForDrag() {
+	if window.disableDrag {
+		window.disableDragCounter = 1
 	}
 
-	if disableDragCounter < 60 && disableDragCounter > 0 {
-		disableDragCounter++
+	if window.disableDragCounter < 60 && window.disableDragCounter > 0 {
+		window.disableDragCounter++
 		return
 
 	} else {
-		disableDragCounter = 0
+		window.disableDragCounter = 0
+		window.disableDrag = false
 	}
 
 	bufferZone := float32(15.0)
@@ -52,16 +57,40 @@ func (window *Window) CheckForDrag(disableDrag bool) {
 		if rl.CheckCollisionPointRec(mousePos, window.box) ||
 			rl.CheckCollisionPointRec(mousePos, rl.NewRectangle(window.box.X-bufferZone, window.box.Y-bufferZone, window.box.Width+bufferZone*2, window.box.Height+bufferZone*2)) {
 
-			if !isDragging {
-				isDragging = true
-				dragOffset = rl.NewVector2(mousePos.X-window.box.X, mousePos.Y-window.box.Y)
+			for _, openWindow := range openWindows {
+				if openWindow.isDragging && openWindow != window {
+					logger.Print("Returned")
+					return
+				}
 			}
 
-			window.box.X = mousePos.X - dragOffset.X
-			window.box.Y = mousePos.Y - dragOffset.Y
+			logger.Print(window.id)
+
+			maxZIndexWindow := window
+			maxZIndex := window.zIndex
+
+			for _, openWindow := range openWindows {
+				if openWindow != window && (rl.CheckCollisionPointRec(mousePos, window.box) ||
+					rl.CheckCollisionPointRec(mousePos, rl.NewRectangle(window.box.X-bufferZone, window.box.Y-bufferZone, window.box.Width+bufferZone*2, window.box.Height+bufferZone*2))) {
+					if openWindow.zIndex > maxZIndex {
+						maxZIndex = openWindow.zIndex
+						maxZIndexWindow = openWindow
+					}
+				}
+			}
+
+			if !maxZIndexWindow.isDragging {
+				maxZIndexWindow.isDragging = true
+				dragOffset = rl.NewVector2(mousePos.X-maxZIndexWindow.box.X, mousePos.Y-maxZIndexWindow.box.Y)
+			}
+
+			maxZIndexWindow.box.X = mousePos.X - dragOffset.X
+			maxZIndexWindow.box.Y = mousePos.Y - dragOffset.Y
 		}
 	} else {
-		isDragging = false
+		for _, openWindow := range openWindows {
+			openWindow.isDragging = false
+		}
 	}
 }
 
@@ -73,11 +102,8 @@ func GetInventoryWindow() *Window {
 			box:    rect,
 			id:     "inventoryWindow",
 			parent: nil,
+			zIndex: 0,
 		}
-		// window.box.X = float32(SCREEN_WIDTH / 4)
-		// window.box.Y = float32(SCREEN_HEIGHT / 4)
-		// window.box.Width = 400
-		// window.box.Height = 200
 	})
 
 	return window
@@ -97,6 +123,8 @@ func (window *Window) SetWindowIsOpen(isOpen bool) {
 	window.isOpen = isOpen
 
 	index := FindElementIndex(openWindows, window)
+
+	logger.Print(openWindows)
 
 	if window.isOpen {
 		if index == -1 {
@@ -146,7 +174,6 @@ func (component *Component) CloseWindow() {
 		for {
 
 			for _, window := range openWindows {
-				//logger.Print(window.parent)
 
 				if window.parent == currentWindow {
 					window.SetWindowIsOpen(false)
@@ -177,19 +204,10 @@ func (component *Component) Draw() {
 func (component *Component) CheckForTogglingItemWindow() {
 	mousePos := rl.GetMousePosition()
 
-	if rl.IsMouseButtonPressed(rl.MouseButtonRight) && rl.CheckCollisionPointRec(mousePos, component.box) && !component.newWindowOpen {
-		box := rl.NewRectangle(component.box.X, component.box.Y-80, 100, 60)
-		//newWindow := Window{box: box, parent: inventoryWindow, sprite: Sprite{}, isOpen: false}
+	if rl.IsMouseButtonPressed(rl.MouseButtonRight) && rl.CheckCollisionPointRec(mousePos, component.box) {
+		component.newWindow.box = rl.NewRectangle(component.box.X, component.box.Y-80, 100, 60)
 
-		newWindow := new(Window)
-		newWindow.box = box
-		newWindow.parent = inventoryWindow
-		newWindow.sprite = Sprite{}
-		newWindow.isOpen = false
-		newWindow.id = "itemDescription"
-
-		newWindow.SetWindowIsOpen(true)
-		component.newWindowOpen = true
+		component.newWindow.SetWindowIsOpen(true)
 	}
 }
 

@@ -25,6 +25,8 @@ var playerInstance *Player
 var openWindows []*Window
 var inventoryWindow *Window
 var openComponents []*Component
+var auxFrameTime float32
+var taggedWindowsForDrag []*Window
 
 func FindElementIndex[T any](slice []T, element T) int {
 	for index, elementInSlice := range slice {
@@ -83,8 +85,6 @@ func main() {
 		if rl.IsKeyPressed(rl.KeyR) {
 			resetWorld()
 		}
-
-		logger.Print(openWindows)
 
 		if playerInstance.State != PAUSED && playerInstance.State != DEAD {
 			playerInstance.CheckForMovement()
@@ -176,6 +176,7 @@ func main() {
 
 		for _, openWindow := range openWindows {
 			openWindow.Draw()
+			openWindow.CheckForDrag()
 		}
 
 		for _, component := range openComponents {
@@ -198,14 +199,39 @@ func resetWorld() {
 }
 
 func startDebugItemsAndMobs() {
+	//Basic potion
 	basicPotion := Item{name: "Basic potion", itemId: "basicPotion", hitbox: rl.NewRectangle(0, 0, 12, 12)}
 
-	basicPotion.itemComponent = &Component{window: inventoryWindow, context: basicPotion, newWindowOpen: false}
+	basicPotion.itemComponent = &Component{window: inventoryWindow, context: basicPotion}
 	basicPotion.itemComponent.onClick = append(basicPotion.itemComponent.onClick, basicPotion.itemComponent.CheckForTogglingItemWindow)
 
+	newWindow := &Window{}
+	newWindow.parent = inventoryWindow
+	newWindow.sprite = Sprite{}
+	newWindow.isOpen = false
+	newWindow.id = "itemDescription"
+	newWindow.box = rl.NewRectangle(basicPotion.itemComponent.box.X, basicPotion.itemComponent.box.Y-80, 100, 60)
+	newWindow.zIndex = 1
+
+	closeNewWindowComponent := &Component{
+		window:       newWindow,
+		sprite:       &Sprite{},
+		windowOffset: rl.Vector2{X: newWindow.box.Width - 25, Y: 5},
+	}
+
+	closeNewWindowComponent.box = rl.NewRectangle(newWindow.box.X, window.box.Y-window.box.Width, 20, 20)
+
+	closeNewWindowComponent.onClick = append(closeNewWindowComponent.onClick, closeNewWindowComponent.CloseWindow)
+
+	newWindow.components = append(newWindow.components, closeNewWindowComponent)
+
+	basicPotion.itemComponent.newWindow = newWindow
+
+	//Basic mob
 	basicMob := Spawn(Mob{Name: "Test", X: 400, Y: 350, Width: 30, Height: 40, HP: 100, MoveSpeed: 2, MovePattern: FIXED_HORIZONTAL, Damage: 5})
 	basicMob.dropTable = append(basicMob.dropTable, ItemDrop{item: basicPotion, chance: 100})
 
+	//Basic ranged mob
 	basicRangedMob := Spawn(Mob{
 		Name: "Ranged", X: 500, Y: 300, Width: 30, Height: 80, HP: 100,
 		MoveSpeed: 8, MovePattern: FIXED_HORIZONTAL, Damage: 5, attackPattern: RANGED_BOTH_SIDES_RANDOM,
@@ -268,7 +294,6 @@ func addTileToMap(x int, y int, solid bool, color color.RGBA) {
 
 func drawInventoryWindow() {
 	player := GetPlayer()
-	disableDrag := false
 
 	rl.DrawRectangleRec(inventoryWindow.box, rl.Beige)
 
@@ -291,10 +316,8 @@ func drawInventoryWindow() {
 		initialY += 10
 		rl.DrawText(item.name, int32(initialX), int32(initialY), 8, rl.Black)
 
-		disableDrag = item.CheckForUse()
+		item.CheckForUse()
 	}
-
-	inventoryWindow.CheckForDrag(disableDrag)
 }
 
 func startDebugPlayer() *Player {
