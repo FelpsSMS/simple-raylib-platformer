@@ -22,7 +22,6 @@ var dragOffset rl.Vector2
 var playerInstance *Player
 var openWindows []*Window
 var inventoryWindow *Window
-var openComponents []*Component
 
 func FindElementIndex[T any](slice []T, element T) int {
 	for index, elementInSlice := range slice {
@@ -173,11 +172,11 @@ func main() {
 		for _, openWindow := range openWindows {
 			openWindow.Draw()
 			openWindow.CheckForDrag()
-		}
 
-		for _, component := range openComponents {
-			component.Draw()
-			component.CheckForClickEvent()
+			for _, component := range openWindow.components {
+				component.Draw()
+				component.CheckForClickEvent()
+			}
 		}
 
 		rl.EndDrawing()
@@ -300,10 +299,9 @@ func drawInventoryWindow() {
 		itemBox := rl.Rectangle{X: initialX, Y: initialY, Width: 20, Height: 20}
 		item.itemComponent.box = itemBox
 
-		itemComponentIndex := FindElementIndex(openComponents, item.itemComponent)
+		itemComponentIndex := FindElementIndex(inventoryWindow.components, item.itemComponent)
 
 		if itemComponentIndex == -1 {
-			openComponents = append(openComponents, item.itemComponent)
 			inventoryWindow.components = append(inventoryWindow.components, item.itemComponent)
 		}
 

@@ -27,7 +27,7 @@ type Component struct {
 	windowOffset rl.Vector2
 	newWindow    *Window
 	context      interface{}
-	onClick      []func()
+	onClick      []func(rl.Vector2)
 }
 
 var (
@@ -128,43 +128,18 @@ func (window *Window) SetWindowIsOpen(isOpen bool) {
 	if window.isOpen {
 		if index == -1 {
 			openWindows = append(openWindows, window)
-
-			for _, component := range window.components {
-				componentIndex := FindElementIndex(openComponents, component)
-
-				if componentIndex == -1 {
-					openComponents = append(openComponents, component)
-				}
-			}
 		} else {
 			openWindows = RemoveFromSlice(openWindows, index)
-
-			for _, component := range window.components {
-				componentIndex := FindElementIndex(openComponents, component)
-
-				if componentIndex != -1 {
-					openComponents = RemoveFromSlice(openComponents, componentIndex)
-				}
-			}
 		}
 	} else {
 		if index != -1 {
 			openWindows = RemoveFromSlice(openWindows, index)
-
-			for _, component := range window.components {
-				componentIndex := FindElementIndex(openComponents, component)
-
-				if componentIndex != -1 {
-					openComponents = RemoveFromSlice(openComponents, componentIndex)
-				}
-			}
 		}
 	}
 
 }
 
-func (component *Component) CloseWindow() {
-	mousePos := rl.GetMousePosition()
+func (component *Component) CloseWindow(mousePos rl.Vector2) {
 
 	if rl.IsMouseButtonPressed(rl.MouseButtonLeft) && rl.CheckCollisionPointRec(mousePos, component.box) {
 		currentWindow := component.window
@@ -200,19 +175,32 @@ func (component *Component) Draw() {
 	}
 }
 
-func (component *Component) CheckForTogglingItemWindow() {
-	mousePos := rl.GetMousePosition()
+func (component *Component) CheckForTogglingItemWindow(mousePos rl.Vector2) {
 
 	if rl.IsMouseButtonPressed(rl.MouseButtonRight) && rl.CheckCollisionPointRec(mousePos, component.box) {
-		component.newWindow.box = rl.NewRectangle(component.box.X, component.box.Y-80, 100, 60)
+		if component.newWindow.isOpen {
+			component.newWindow.SetWindowIsOpen(false)
+			return
+		}
 
+		component.newWindow.box = rl.NewRectangle(component.box.X, component.box.Y-80, 100, 60)
 		component.newWindow.SetWindowIsOpen(true)
+
 	}
 }
 
 func (component *Component) CheckForClickEvent() {
+	mousePos := rl.GetMousePosition()
+
+	for _, openWindow := range openWindows {
+
+		if openWindow != component.window && rl.CheckCollisionPointRec(mousePos, openWindow.box) && openWindow.zIndex > component.window.zIndex {
+			return
+		}
+	}
+
 	for _, fn := range component.onClick {
-		fn()
+		fn(mousePos)
 	}
 
 }
