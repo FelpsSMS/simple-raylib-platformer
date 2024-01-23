@@ -32,7 +32,7 @@ type Item struct {
 
 func (item *Item) CheckForUse() {
 	player := GetPlayer()
-	mousePos := rl.GetMousePosition()
+	mousePos := GetMousePosition()
 
 	if rl.IsMouseButtonPressed(rl.MouseButtonLeft) && rl.CheckCollisionPointRec(mousePos, item.itemComponent.box) {
 		inventoryWindow.disableDragCounter = 1

@@ -22,6 +22,13 @@ var dragOffset rl.Vector2
 var playerInstance *Player
 var openWindows []*Window
 var inventoryWindow *Window
+var camera rl.Camera2D
+var targetY float32
+var targetX float32
+var previousTargetX float32
+var previousTargetY float32
+
+const cameraThreshold = 100
 
 func FindElementIndex[T any](slice []T, element T) int {
 	for index, elementInSlice := range slice {
@@ -44,6 +51,15 @@ func DrawOutlinedText(text string, posX int32, posY int32, fontSize int32, color
 	rl.DrawText(text, posX, posY, fontSize, color)
 }
 
+func GetMousePosition() rl.Vector2 {
+	mousePos := rl.GetMousePosition()
+	worldMousePos := rl.GetScreenToWorld2D(mousePos, camera)
+
+	rl.DrawCircle(int32(worldMousePos.X), int32(worldMousePos.Y), 2, rl.Violet)
+
+	return worldMousePos
+}
+
 func main() {
 	rl.InitWindow(int32(SCREEN_WIDTH), int32(SCREEN_HEIGHT), GAME_TITLE)
 	defer rl.CloseWindow()
@@ -53,6 +69,8 @@ func main() {
 
 	playerInstance = startDebugPlayer()
 	inventoryWindow = GetInventoryWindow()
+
+	camera = rl.NewCamera2D(rl.NewVector2(float32(SCREEN_WIDTH)/2, float32(SCREEN_HEIGHT)/2), rl.NewVector2(playerInstance.X, playerInstance.Y), 0, 1)
 
 	closeInventoryWindowComponent := &Component{
 		window:       inventoryWindow,
@@ -113,6 +131,40 @@ func main() {
 
 		rl.ClearBackground(rl.RayWhite)
 
+		rl.BeginMode2D(camera)
+
+		targetY = float32(SCREEN_HEIGHT) / 2
+		targetX = float32(SCREEN_WIDTH) / 2
+
+		if previousTargetX == 0 {
+			previousTargetX = targetX
+		}
+
+		if previousTargetY == 0 {
+			previousTargetY = targetY
+		}
+
+		if playerInstance.Y < cameraThreshold {
+			targetY = float32(SCREEN_HEIGHT) + (playerInstance.Y - float32(SCREEN_HEIGHT))
+		}
+
+		if playerInstance.Y > float32(SCREEN_HEIGHT) {
+			targetY = float32(SCREEN_HEIGHT) + (playerInstance.Y - float32(SCREEN_HEIGHT))
+		}
+
+		if playerInstance.X > float32(SCREEN_WIDTH) {
+			targetX = float32(SCREEN_WIDTH) + (playerInstance.X - float32(SCREEN_WIDTH))
+		}
+
+		if playerInstance.X < 0 {
+			targetX = float32(SCREEN_WIDTH) + (playerInstance.X - float32(SCREEN_WIDTH))
+		}
+
+		resultY := rl.Vector2Lerp(rl.NewVector2(0, camera.Target.Y), rl.NewVector2(0, targetY), 0.05)
+		resultX := rl.Vector2Lerp(rl.NewVector2(camera.Target.X, 0), rl.NewVector2(targetX, 0), 0.05)
+
+		camera.Target = rl.NewVector2(resultX.X, resultY.Y)
+
 		initiateLevel()
 		playerInstance.Draw()
 
@@ -169,7 +221,18 @@ func main() {
 			drawInventoryWindow()
 		}
 
+		const lerpFactor = 0.05
+
 		for _, openWindow := range openWindows {
+			// Update window position based on camera movement
+
+			lerpVector := rl.Vector2Lerp(rl.NewVector2(openWindow.box.X, openWindow.box.Y), rl.NewVector2(targetX-(openWindow.box.X-previousTargetX), targetY-(openWindow.box.Y-previousTargetY)), lerpFactor)
+			openWindow.box.X = lerpVector.X
+			openWindow.box.Y = lerpVector.Y
+
+			previousTargetX = targetX
+			previousTargetY = targetY
+
 			openWindow.Draw()
 			openWindow.CheckForDrag()
 

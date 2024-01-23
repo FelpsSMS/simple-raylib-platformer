@@ -50,7 +50,7 @@ func (window *Window) CheckForDrag() {
 	}
 
 	bufferZone := float32(15.0)
-	mousePos := rl.GetMousePosition()
+	mousePos := GetMousePosition()
 
 	if rl.IsMouseButtonDown(rl.MouseButtonLeft) {
 
@@ -70,8 +70,6 @@ func (window *Window) CheckForDrag() {
 			for _, openWindow := range openWindows {
 				if openWindow != window && (rl.CheckCollisionPointRec(mousePos, openWindow.box) ||
 					rl.CheckCollisionPointRec(mousePos, rl.NewRectangle(openWindow.box.X-bufferZone, openWindow.box.Y-bufferZone, openWindow.box.Width+bufferZone*2, openWindow.box.Height+bufferZone*2))) {
-
-					logger.Printf("Window %v", openWindow)
 
 					if openWindow.zIndex > maxZIndex {
 						maxZIndex = openWindow.zIndex
@@ -96,15 +94,15 @@ func (window *Window) CheckForDrag() {
 }
 
 func GetInventoryWindow() *Window {
-	rect := rl.Rectangle{X: float32(SCREEN_WIDTH / 4), Y: float32(SCREEN_HEIGHT / 4), Width: 400, Height: 200}
-
 	inventoryOnce.Do(func() {
 		window = &Window{
-			box:    rect,
 			id:     "inventoryWindow",
 			parent: nil,
 			zIndex: 0,
 		}
+
+		window.box.Width = 400
+		window.box.Height = 200
 	})
 
 	return window
@@ -190,7 +188,7 @@ func (component *Component) CheckForTogglingItemWindow(mousePos rl.Vector2) {
 }
 
 func (component *Component) CheckForClickEvent() {
-	mousePos := rl.GetMousePosition()
+	mousePos := GetMousePosition()
 
 	for _, openWindow := range openWindows {
 
